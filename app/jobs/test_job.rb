@@ -1,24 +1,21 @@
 # app/jobs/hello_world_job.rb
 class TestJob < ApplicationJob
+  include Retryable
   queue_as :default
-#   retry_on CustomAppException # defaults to 3s wait, 5 attempts
-#   retry_on(*exceptions, wait: 30.seconds, attempts: 2)
-
-#   def discard_on(*exceptions)
-#     rescue_from(*exceptions) do |error|
-#       instrument :discard, error: error do
-#         yield self, error if block_given?
-#       end
-#     end
-#   end
-
-#   discard_on ActiveJob::DeserializationError
-
-  def perform(*args)
-    # args.each { |i| Might raise CustomAppException or ActiveJob::DeserializationError }
-    # Might raise CustomAppException or ActiveJob::DeserializationError
-  end
-
 
   
+  discard_on StandardError
+  rescue_from StandardError do
+    retry_job wait: wait.minutes, queue: :default, retries_count: retries_count if retries_count < 2
+  end
+  
+  # retry_on StandardError, wait: 5.seconds, attempts: 3
+
+  def perform(name)
+    # This will be excuted successfully
+    puts "Test job argument with index: #{name} "
+
+    # This will trigger the rescue as it will give a StandardError
+    # puts "Test job #{k}"
+  end
 end
